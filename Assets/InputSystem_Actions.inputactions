@@ -43,7 +43,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "FlipGravity",
+                    "name": "Jump1",
                     "type": "Button",
                     "id": "27c5f898-bc57-4ee1-8800-db469aca5fe3",
                     "expectedControlType": "",
@@ -52,7 +52,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Jump",
+                    "name": "ChangeGravity",
                     "type": "Button",
                     "id": "f1ba0d36-48eb-4cd5-b651-1c94a6531f70",
                     "expectedControlType": "",
@@ -382,7 +382,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Jump",
+                    "action": "ChangeGravity",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -393,7 +393,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Jump",
+                    "action": "ChangeGravity",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -404,7 +404,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
-                    "action": "Jump",
+                    "action": "ChangeGravity",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -459,7 +459,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "FlipGravity",
+                    "action": "Jump1",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -470,7 +470,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "FlipGravity",
+                    "action": "Jump1",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -4,34 +4,47 @@ using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Input System")]
+    [Header("Input")]
     public InputActionAsset InputActions;
-
-    [Header("References")]
-    public Transform cameraHolder; // assegna il transform del "CameraHolder" nel prefab
-
-    [Header("Movement Settings")]
-    public float WalkSpeed = 5.0f;
-    public float RotateSpeed = 5.0f;
-    public float JumpSpeed = 5.0f;
-    public float GravityStrength = 9.81f;
-
-    [Header("Gravity Detection")]
-    public float gravityCheckRadius = 2f;
-    public float gravityRayLength = 5f;
-    public LayerMask gravitySurfaces;
-
     private InputAction moveAction;
     private InputAction lookAction;
-    private InputAction jumpAction;
-    private InputAction changeGravityAction;
+    private InputAction gravityAction;
 
+    [Header("References")]
+    public Transform cameraHolder;
     private Rigidbody rb;
+
+    [Header("Movement Settings")]
+    public float walkSpeed = 6f;
+    public float rotationSpeed = 120f;
+
+    [Header("Camera Settings")]
+    public float mouseSensitivity = 1.0f;
+    public float controllerSensitivity = 2.0f;
+    public float maxLookAngle = 80f;
+
+    [Header("Gravity Settings")]
+    public float gravityStrength = 9.81f;
+    public float gravityCheckDistance = 3f;
+    public float rotateToSurfaceSpeed = 5f;
+
     private Vector2 moveInput;
     private Vector2 lookInput;
-
     private Vector3 gravityDirection = Vector3.down;
-    private bool isRotating = false;
+    private float cameraPitch = 0f;
+    private bool isRotatingToSurface = false;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.useGravity = false;
+        rb.freezeRotation = true;
+
+        var playerMap = InputActions.FindActionMap("Player");
+        moveAction = playerMap.FindAction("Move");
+        lookAction = playerMap.FindAction("Look");
+        gravityAction = playerMap.FindAction("ChangeGravity");
+    }
 
     private void OnEnable()
     {
@@ -43,124 +56,136 @@ public class PlayerMovement : MonoBehaviour
         InputActions.FindActionMap("Player").Disable();
     }
 
-    private void Awake()
-    {
-        var playerMap = InputActions.FindActionMap("Player");
-        moveAction = playerMap.FindAction("Move");
-        lookAction = playerMap.FindAction("Look");
-        jumpAction = playerMap.FindAction("Jump");
-        changeGravityAction = playerMap.FindAction("FlipGravity"); // mappata su C
-
-        rb = GetComponent<Rigidbody>();
-        rb.useGravity = false;
-    }
-
     private void Update()
     {
-        moveInput = moveAction.ReadValue<Vector2>();
-        lookInput = lookAction.ReadValue<Vector2>();
+        moveInput = moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
+        lookInput = lookAction?.ReadValue<Vector2>() ?? Vector2.zero;
 
-        if (jumpAction.WasPressedThisFrame())
-            Jump();
-
-        if (changeGravityAction.WasPressedThisFrame() && !isRotating)
-            TryChangeGravity();
-
-        HandleCameraRotation();
+        if (gravityAction != null && gravityAction.WasPressedThisFrame() && !isRotatingToSurface)
+            StartCoroutine(ChangeGravityToClosestSurface());
     }
 
     private void FixedUpdate()
     {
-        ApplyCustomGravity();
-        Move();
+        ApplyGravity();
+        MovePlayer();
+        HandleCameraRotation();
     }
 
-    private void Move()
+    // ---------------------------------------------------------
+    // MOVIMENTO
+    // ---------------------------------------------------------
+
+    private void MovePlayer()
     {
-        Vector3 moveDir = (transform.forward * moveInput.y + transform.right * moveInput.x).normalized;
-        rb.MovePosition(rb.position + moveDir * WalkSpeed * Time.fixedDeltaTime);
+        if (isRotatingToSurface) return;
+
+        Vector3 moveDirection = (transform.forward * moveInput.y + transform.right * moveInput.x).normalized;
+        Vector3 targetVelocity = moveDirection * walkSpeed;
+
+        Vector3 currentVelocity = rb.linearVelocity;
+        Vector3 velocityChange = targetVelocity - Vector3.ProjectOnPlane(currentVelocity, -gravityDirection);
+
+        rb.AddForce(velocityChange, ForceMode.VelocityChange);
     }
 
-    private void Jump()
+    // ---------------------------------------------------------
+    // CAMERA E ROTAZIONE
+    // ---------------------------------------------------------
+
+    private void HandleCameraRotation()
     {
-        rb.AddForce(-gravityDirection * JumpSpeed, ForceMode.Impulse);
+        if (isRotatingToSurface) return;
+
+        float sensitivity = (Mouse.current != null && Mouse.current.delta.ReadValue() != Vector2.zero)
+            ? mouseSensitivity
+            : controllerSensitivity;
+
+        float yaw = lookInput.x * rotationSpeed * sensitivity * Time.deltaTime;
+        float pitch = -lookInput.y * rotationSpeed * sensitivity * Time.deltaTime;
+
+        Quaternion yawRotation = Quaternion.AngleAxis(yaw, -gravityDirection);
+        transform.rotation = yawRotation * transform.rotation;
+
+        cameraPitch = Mathf.Clamp(cameraPitch + pitch, -maxLookAngle, maxLookAngle);
+        Quaternion pitchRotation = Quaternion.AngleAxis(cameraPitch, cameraHolder.right);
+
+        Quaternion alignToGravity = Quaternion.FromToRotation(cameraHolder.up, -gravityDirection) * cameraHolder.rotation;
+
+        cameraHolder.rotation = Quaternion.Slerp(
+            cameraHolder.rotation,
+            pitchRotation * transform.rotation,
+            Time.deltaTime * 15f
+        );
     }
 
-    private void ApplyCustomGravity()
+    // ---------------------------------------------------------
+    // GRAVITÀ
+    // ---------------------------------------------------------
+
+    private void ApplyGravity()
     {
-        rb.AddForce(gravityDirection * GravityStrength, ForceMode.Acceleration);
+        rb.AddForce(gravityDirection * gravityStrength, ForceMode.Acceleration);
     }
 
-    private void TryChangeGravity()
+    private IEnumerator ChangeGravityToClosestSurface()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, gravityCheckRadius, gravitySurfaces);
+        isRotatingToSurface = true;
 
-        Transform closestSurface = null;
-        float closestDistance = float.MaxValue;
-        Vector3 surfaceNormal = Vector3.up;
-
-        foreach (Collider hit in hits)
+        Vector3[] directions =
         {
-            Vector3 closestPoint = hit.ClosestPoint(transform.position);
-            float distance = Vector3.Distance(transform.position, closestPoint);
-            if (distance < closestDistance)
-            {
-                closestDistance = distance;
+            transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward
+        };
 
-                // Ottieni la normale con un raycast verso quella direzione
-                if (Physics.Raycast(transform.position, (closestPoint - transform.position).normalized,
-                    out RaycastHit hitInfo, gravityRayLength, gravitySurfaces))
+        Vector3 closestNormal = -gravityDirection;
+        float closestDist = Mathf.Infinity;
+
+        foreach (var dir in directions)
+        {
+            if (Physics.Raycast(transform.position, dir, out RaycastHit hit, gravityCheckDistance))
+            {
+                if (hit.distance < closestDist)
                 {
-                    closestSurface = hit.transform;
-                    surfaceNormal = hitInfo.normal;
+                    closestDist = hit.distance;
+                    closestNormal = hit.normal;
                 }
             }
         }
 
-        if (closestSurface != null)
+        if (closestDist == Mathf.Infinity)
         {
-            StartCoroutine(RotateToSurface(surfaceNormal));
+            isRotatingToSurface = false;
+            yield break;
         }
-    }
 
-    private IEnumerator RotateToSurface(Vector3 surfaceNormal)
-    {
-        isRotating = true;
+        Vector3 newGravity = -closestNormal.normalized;
+        Quaternion startRot = transform.rotation;
+        Quaternion targetRot = Quaternion.FromToRotation(-gravityDirection, closestNormal) * transform.rotation;
 
-        Quaternion startRotation = transform.rotation;
-        Quaternion targetRotation = Quaternion.FromToRotation(transform.up, surfaceNormal) * transform.rotation;
-        Quaternion cameraStart = cameraHolder.rotation;
-        Quaternion cameraTarget = Quaternion.FromToRotation(cameraHolder.up, surfaceNormal) * cameraHolder.rotation;
-
-        Vector3 newGravityDirection = -surfaceNormal;
         float t = 0f;
-
         while (t < 1f)
         {
-            t += Time.deltaTime * 3f;
-            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
-            cameraHolder.rotation = Quaternion.Slerp(cameraStart, cameraTarget, t);
+            t += Time.deltaTime * rotateToSurfaceSpeed;
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+            cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, t);
             yield return null;
         }
 
-        gravityDirection = newGravityDirection.normalized;
-        isRotating = false;
+        gravityDirection = newGravity;
+        isRotatingToSurface = false;
     }
 
-    private void HandleCameraRotation()
-    {
-        // Rotazione orizzontale del player
-        float yaw = lookInput.x * RotateSpeed * Time.deltaTime;
-        transform.Rotate(0, yaw, 0, Space.Self);
+    // ---------------------------------------------------------
+    // MENU OPZIONI
+    // ---------------------------------------------------------
 
-        // Rotazione verticale della camera
-        float pitch = -lookInput.y * RotateSpeed * Time.deltaTime;
-        cameraHolder.Rotate(pitch, 0, 0, Space.Self);
+    public void SetMouseSensitivity(float value)
+    {
+        mouseSensitivity = value;
     }
 
-    private void OnDrawGizmosSelected()
+    public void SetControllerSensitivity(float value)
     {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, gravityCheckRadius);
+        controllerSensitivity = value;
     }
 }
