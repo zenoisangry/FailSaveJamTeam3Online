@@ -9,6 +9,8 @@ public class PlayerMovement : MonoBehaviour
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction gravityAction;
+    private InputAction pauseActionPlayer;
+    private InputAction pauseActionUI;
 
     [Header("References")]
     public Transform cameraHolder;
@@ -28,6 +30,9 @@ public class PlayerMovement : MonoBehaviour
     public float gravityCheckDistance = 3f;
     public float rotateToSurfaceSpeed = 5f;
 
+    [Header("Menu Settings")]
+    public GameObject pauseDisplay;
+
     private Vector2 moveInput;
     private Vector2 lookInput;
     private Vector3 gravityDirection = Vector3.down;
@@ -44,6 +49,9 @@ public class PlayerMovement : MonoBehaviour
         moveAction = playerMap.FindAction("Move");
         lookAction = playerMap.FindAction("Look");
         gravityAction = playerMap.FindAction("ChangeGravity");
+
+        pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
+        pauseActionUI = InputSystem.actions.FindAction("UI/Pause");
     }
 
     private void OnEnable()
@@ -63,6 +71,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (gravityAction != null && gravityAction.WasPressedThisFrame() && !isRotatingToSurface)
             StartCoroutine(ChangeGravityToClosestSurface());
+
+        DisplayPause();
     }
 
     private void FixedUpdate()
@@ -178,6 +188,22 @@ public class PlayerMovement : MonoBehaviour
     // ---------------------------------------------------------
     // MENU OPZIONI
     // ---------------------------------------------------------
+
+    private void DisplayPause()
+    {
+        if (pauseActionPlayer.WasPressedThisFrame())
+        {
+            pauseDisplay.SetActive(true);
+            InputActions.FindActionMap("Player").Disable();
+            InputActions.FindActionMap("UI").Enable();
+        }
+        else if (pauseActionUI.WasPressedThisFrame())
+        {
+            pauseDisplay.SetActive(false);
+            InputActions.FindActionMap("Player").Enable();
+            InputActions.FindActionMap("UI").Disable();
+        }
+    }
 
     public void SetMouseSensitivity(float value)
     {
