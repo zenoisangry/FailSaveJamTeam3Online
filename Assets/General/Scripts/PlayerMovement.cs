@@ -29,15 +29,29 @@ public class PlayerMovement : MonoBehaviour
     public float gravityStrength = 9.81f;
     public float gravityCheckDistance = 3f;
     public float rotateToSurfaceSpeed = 5f;
+    public float airAttachDelay = 1.0f;
+
+    [Header("Head Sway Settings")]
+    public float swayAmplitude = 2f;
+    public float swayFrequency = 2f;
+    public float moveSwaySpeed = 3f;
+    public float baseCameraY = 0.5f; // posizione iniziale della camera
+    public float minCameraY = 0.3f;  // limite inferiore durante l'oscillazione
 
     [Header("Menu Settings")]
     public GameObject pauseDisplay;
+    public GameObject settingsDisplay;
 
     private Vector2 moveInput;
     private Vector2 lookInput;
     private Vector3 gravityDirection = Vector3.down;
     private float cameraPitch = 0f;
     private bool isRotatingToSurface = false;
+    private float airTime = 0f;
+
+    // Stati del menu
+    private bool isPauseMenuActive = false;
+    private bool isSettingsActive = false;
 
     private void Awake()
     {
@@ -52,6 +66,10 @@ public class PlayerMovement : MonoBehaviour
 
         pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
         pauseActionUI = InputSystem.actions.FindAction("UI/Pause");
+
+        // Nascondi menu all'inizio
+        pauseDisplay.SetActive(false);
+        settingsDisplay.SetActive(false);
     }
 
     private void OnEnable()
@@ -72,7 +90,22 @@ public class PlayerMovement : MonoBehaviour
         if (gravityAction != null && gravityAction.WasPressedThisFrame() && !isRotatingToSurface)
             StartCoroutine(ChangeGravityToClosestSurface());
 
-        DisplayPause();
+        // Controllo "in aria"
+        if (!IsGrounded())
+        {
+            airTime += Time.deltaTime;
+            if (airTime >= airAttachDelay && !isRotatingToSurface)
+            {
+                StartCoroutine(ChangeGravityToClosestSurface());
+                airTime = 0f;
+            }
+        }
+        else
+        {
+            airTime = 0f;
+        }
+
+        HandlePauseInput();
     }
 
     private void FixedUpdate()
@@ -80,6 +113,7 @@ public class PlayerMovement : MonoBehaviour
         ApplyGravity();
         MovePlayer();
         HandleCameraRotation();
+        HandleCameraSway();
     }
 
     // ---------------------------------------------------------
@@ -97,6 +131,11 @@ public class PlayerMovement : MonoBehaviour
         Vector3 velocityChange = targetVelocity - Vector3.ProjectOnPlane(currentVelocity, -gravityDirection);
 
         rb.AddForce(velocityChange, ForceMode.VelocityChange);
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics.Raycast(transform.position, gravityDirection, out _, 1.1f);
     }
 
     // ---------------------------------------------------------
@@ -120,13 +159,23 @@ public class PlayerMovement : MonoBehaviour
         cameraPitch = Mathf.Clamp(cameraPitch + pitch, -maxLookAngle, maxLookAngle);
         Quaternion pitchRotation = Quaternion.AngleAxis(cameraPitch, cameraHolder.right);
 
-        Quaternion alignToGravity = Quaternion.FromToRotation(cameraHolder.up, -gravityDirection) * cameraHolder.rotation;
-
         cameraHolder.rotation = Quaternion.Slerp(
             cameraHolder.rotation,
             pitchRotation * transform.rotation,
             Time.deltaTime * 15f
         );
+    }
+
+    private void HandleCameraSway()
+    {
+        if (isRotatingToSurface) return;
+
+        // Oscillazione verticale verso il basso
+        float swayPhase = Mathf.Abs(Mathf.Sin(Time.time * moveSwaySpeed)) * moveInput.magnitude;
+        float targetY = Mathf.Lerp(baseCameraY, minCameraY, swayPhase);
+
+        Vector3 targetPos = new Vector3(0, targetY, 0);
+        cameraHolder.localPosition = Vector3.Lerp(cameraHolder.localPosition, targetPos, Time.deltaTime * 5f);
     }
 
     // ---------------------------------------------------------
@@ -173,11 +222,17 @@ public class PlayerMovement : MonoBehaviour
         Quaternion targetRot = Quaternion.FromToRotation(-gravityDirection, closestNormal) * transform.rotation;
 
         float t = 0f;
+
         while (t < 1f)
         {
             t += Time.deltaTime * rotateToSurfaceSpeed;
             transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
-            cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, t);
+
+            // Head sway durante la transizione
+            float swayOffset = Mathf.Sin(t * Mathf.PI * swayFrequency) * swayAmplitude;
+            Quaternion swayRotation = Quaternion.AngleAxis(swayOffset, transform.forward);
+            cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, t) * swayRotation;
+
             yield return null;
         }
 
@@ -186,24 +241,55 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // ---------------------------------------------------------
-    // MENU OPZIONI
+    // MENU PAUSA E IMPOSTAZIONI
     // ---------------------------------------------------------
 
-    private void DisplayPause()
+    private void HandlePauseInput()
     {
-        if (pauseActionPlayer.WasPressedThisFrame())
+        // Apri/chiudi il menu pausa
+        if (pauseActionPlayer.WasPressedThisFrame() && !isPauseMenuActive)
         {
-            pauseDisplay.SetActive(true);
-            InputActions.FindActionMap("Player").Disable();
-            InputActions.FindActionMap("UI").Enable();
+            OpenPauseMenu();
         }
-        else if (pauseActionUI.WasPressedThisFrame())
+        else if (pauseActionUI.WasPressedThisFrame() && isPauseMenuActive && !isSettingsActive)
         {
-            pauseDisplay.SetActive(false);
-            InputActions.FindActionMap("Player").Enable();
-            InputActions.FindActionMap("UI").Disable();
+            ClosePauseMenu();
         }
     }
+
+    private void OpenPauseMenu()
+    {
+        isPauseMenuActive = true;
+        pauseDisplay.SetActive(true);
+        settingsDisplay.SetActive(false);
+        InputActions.FindActionMap("Player").Disable();
+        InputActions.FindActionMap("UI").Enable();
+    }
+
+    private void ClosePauseMenu()
+    {
+        isPauseMenuActive = false;
+        pauseDisplay.SetActive(false);
+        settingsDisplay.SetActive(false);
+        InputActions.FindActionMap("Player").Enable();
+        InputActions.FindActionMap("UI").Disable();
+    }
+
+    public void OpenSettings()
+    {
+        isSettingsActive = true;
+        settingsDisplay.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        isSettingsActive = false;
+        settingsDisplay.SetActive(false);
+    }
+
+    // ---------------------------------------------------------
+    // SENSIBILITÀ
+    // ---------------------------------------------------------
 
     public void SetMouseSensitivity(float value)
     {
