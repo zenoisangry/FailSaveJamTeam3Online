@@ -35,8 +35,8 @@ public class PlayerMovement : MonoBehaviour
     public float swayAmplitude = 2f;
     public float swayFrequency = 2f;
     public float moveSwaySpeed = 3f;
-    public float baseCameraY = 0.5f; // posizione iniziale della camera
-    public float minCameraY = 0.3f;  // limite inferiore durante l'oscillazione
+    public float baseCameraY = 0.5f;
+    public float minCameraY = 0.3f;
 
     [Header("Menu Settings")]
     public GameObject pauseDisplay;
@@ -67,7 +67,6 @@ public class PlayerMovement : MonoBehaviour
         pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
         pauseActionUI = InputSystem.actions.FindAction("UI/Pause");
 
-        // Nascondi menu all'inizio
         pauseDisplay.SetActive(false);
         settingsDisplay.SetActive(false);
     }
@@ -90,7 +89,6 @@ public class PlayerMovement : MonoBehaviour
         if (gravityAction != null && gravityAction.WasPressedThisFrame() && !isRotatingToSurface)
             StartCoroutine(ChangeGravityToClosestSurface());
 
-        // Controllo "in aria"
         if (!IsGrounded())
         {
             airTime += Time.deltaTime;
@@ -169,7 +167,6 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isRotatingToSurface) return;
 
-        // Oscillazione verticale verso il basso
         float swayPhase = Mathf.Abs(Mathf.Sin(Time.time * moveSwaySpeed)) * moveInput.magnitude;
         float targetY = Mathf.Lerp(baseCameraY, minCameraY, swayPhase);
 
@@ -227,7 +224,6 @@ public class PlayerMovement : MonoBehaviour
             t += Time.deltaTime * rotateToSurfaceSpeed;
             transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
 
-            // Head sway durante la transizione
             float swayOffset = Mathf.Sin(t * Mathf.PI * swayFrequency) * swayAmplitude;
             Quaternion swayRotation = Quaternion.AngleAxis(swayOffset, transform.forward);
             cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, t) * swayRotation;
@@ -245,7 +241,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandlePauseInput()
     {
-        // Apri/chiudi il menu pausa
         if (pauseActionPlayer.WasPressedThisFrame() && !isPauseMenuActive)
         {
             OpenPauseMenu();
