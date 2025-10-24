@@ -104,7 +104,8 @@ public class PlayerMovement : MonoBehaviour
         {
             airTime = 0f;
         }
-
+        HandleCameraRotation();
+        HandleCameraSway();
         HandlePauseInput();
     }
 
@@ -112,8 +113,6 @@ public class PlayerMovement : MonoBehaviour
     {
         ApplyGravity();
         MovePlayer();
-        HandleCameraRotation();
-        HandleCameraSway();
     }
 
     // ---------------------------------------------------------
