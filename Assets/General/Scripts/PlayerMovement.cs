@@ -91,11 +91,17 @@ public class PlayerMovement : MonoBehaviour
 
         if (!IsGrounded())
         {
-            airTime += Time.deltaTime;
-            if (airTime >= airAttachDelay && !isRotatingToSurface)
+            if (airTime != -0.1f)
             {
-                StartCoroutine(ChangeGravityToClosestSurface());
-                airTime = 0f;
+                airTime += Time.deltaTime;
+                if (airTime >= airAttachDelay && !isRotatingToSurface)
+                {
+                    float tempGravityCheck = gravityCheckDistance;
+                    gravityCheckDistance = 10;
+                    StartCoroutine(ChangeGravityToClosestSurface());
+                    gravityCheckDistance = tempGravityCheck;
+                    airTime = -0.1f;
+                }
             }
         }
         else
@@ -189,7 +195,7 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3[] directions =
         {
-            transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward
+            transform.up, transform.right, -transform.right, transform.forward, -transform.forward
         };
 
         Vector3 closestNormal = -gravityDirection;
@@ -218,7 +224,7 @@ public class PlayerMovement : MonoBehaviour
         Quaternion targetRot = Quaternion.FromToRotation(-gravityDirection, closestNormal) * transform.rotation;
 
         float t = 0f;
-
+        
         while (t < 1f)
         {
             t += Time.deltaTime * rotateToSurfaceSpeed;
@@ -226,7 +232,7 @@ public class PlayerMovement : MonoBehaviour
 
             float swayOffset = Mathf.Sin(t * Mathf.PI * swayFrequency) * swayAmplitude;
             Quaternion swayRotation = Quaternion.AngleAxis(swayOffset, transform.forward);
-            cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, t) * swayRotation;
+            cameraHolder.rotation = Quaternion.Slerp(cameraHolder.rotation, targetRot, Time.deltaTime) * swayRotation;
 
             yield return null;
         }
