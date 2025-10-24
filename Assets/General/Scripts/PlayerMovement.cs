@@ -49,10 +49,6 @@ public class PlayerMovement : MonoBehaviour
     private bool isRotatingToSurface = false;
     private float airTime = 0f;
 
-    // Stati del menu
-    private bool isPauseMenuActive = false;
-    private bool isSettingsActive = false;
-
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -110,7 +106,6 @@ public class PlayerMovement : MonoBehaviour
         }
         HandleCameraRotation();
         HandleCameraSway();
-        HandlePauseInput();
     }
 
     private void FixedUpdate()
@@ -239,52 +234,6 @@ public class PlayerMovement : MonoBehaviour
 
         gravityDirection = newGravity;
         isRotatingToSurface = false;
-    }
-
-    // ---------------------------------------------------------
-    // MENU PAUSA E IMPOSTAZIONI
-    // ---------------------------------------------------------
-
-    private void HandlePauseInput()
-    {
-        if (pauseActionPlayer.WasPressedThisFrame() && !isPauseMenuActive)
-        {
-            OpenPauseMenu();
-        }
-        else if (pauseActionUI.WasPressedThisFrame() && isPauseMenuActive && !isSettingsActive)
-        {
-            ClosePauseMenu();
-        }
-    }
-
-    private void OpenPauseMenu()
-    {
-        isPauseMenuActive = true;
-        pauseDisplay.SetActive(true);
-        settingsDisplay.SetActive(false);
-        InputActions.FindActionMap("Player").Disable();
-        InputActions.FindActionMap("UI").Enable();
-    }
-
-    private void ClosePauseMenu()
-    {
-        isPauseMenuActive = false;
-        pauseDisplay.SetActive(false);
-        settingsDisplay.SetActive(false);
-        InputActions.FindActionMap("Player").Enable();
-        InputActions.FindActionMap("UI").Disable();
-    }
-
-    public void OpenSettings()
-    {
-        isSettingsActive = true;
-        settingsDisplay.SetActive(true);
-    }
-
-    public void CloseSettings()
-    {
-        isSettingsActive = false;
-        settingsDisplay.SetActive(false);
     }
 
     // ---------------------------------------------------------

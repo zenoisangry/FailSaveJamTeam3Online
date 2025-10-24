@@ -43,6 +43,18 @@ public class PauseMenuManager : MonoBehaviour
             returnButton.onClick.AddListener(ClosePauseMenu);
     }
 
+    void Update()
+    {
+        if (pauseActionPlayer.WasPressedThisFrame() && !isPauseMenuActive)
+        {
+            OpenPauseMenu();
+        }
+        else if (pauseActionUI.WasPressedThisFrame() && isPauseMenuActive)
+        {
+            ClosePauseMenu();
+        }
+    }
+
     private void OnEnable()
     {
         inputActions.FindActionMap("UI").Enable();
@@ -53,26 +65,9 @@ public class PauseMenuManager : MonoBehaviour
         inputActions.FindActionMap("UI").Disable();
     }
 
-    private void Update()
-    {
-        HandlePauseInput();
-    }
-
     // ---------------------------------------------------------
     // MENU PAUSA
     // ---------------------------------------------------------
-
-    private void HandlePauseInput()
-    {
-        if (pauseActionPlayer.WasPressedThisFrame() && !isPauseMenuActive)
-        {
-            OpenPauseMenu();
-        }
-        else if (pauseActionUI.WasPressedThisFrame() && isPauseMenuActive && !isSettingsActive)
-        {
-            ClosePauseMenu();
-        }
-    }
 
     public void OpenPauseMenu()
     {
@@ -82,8 +77,6 @@ public class PauseMenuManager : MonoBehaviour
 
         inputActions.FindActionMap("Player").Disable();
         inputActions.FindActionMap("UI").Enable();
-
-        Time.timeScale = 0f;
     }
 
     public void ClosePauseMenu()
