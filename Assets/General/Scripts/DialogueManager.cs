@@ -1,45 +1,70 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class DialogueManager : MonoBehaviour
 {
     public static DialogueManager Instance;
 
+    [Header("UI References")]
+    public Canvas dialogueCanvas;
     public TextMeshProUGUI dialogueArea;
 
-    private Queue<DialogueLine> lines;
+    [Header("References")]
+    public PlayerMovement playerMovement;
+    public InputActionAsset inputActions;
+    private InputAction pauseActionPlayer;
 
-    public bool isDialogueActive = false;
-
+    [Header("Settings")]
     public float typingSpeed = 0.2f;
-
-    public Animator animator;
-
     public AudioSource dialogueSounds;
-    private float audioCD = 1;
+
+    private Queue<DialogueLine> lines;
+    private float audioCD = 1f;
+    public bool isDialogueActive = false;
 
     private void Awake()
     {
+        pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
+
         if (Instance == null)
             Instance = this;
+        else
+            Destroy(gameObject);
+
         lines = new Queue<DialogueLine>();
+
+        if (dialogueCanvas == null)
+        {
+            Debug.LogError("Dialogue Canvas non assegnata nel DialogueManager!");
+        }
+        else
+        {
+            dialogueCanvas.gameObject.SetActive(false);
+        }
     }
 
     public void StartDialogue(Dialogue dialogue)
     {
+        inputActions.FindActionMap("Player").Disable();
+
+        if (dialogueCanvas == null)
+        {
+            Debug.LogError("Impossibile avviare il dialogo: Canvas non assegnata.");
+            return;
+        }
+
         isDialogueActive = true;
-
-        //animator.Play("show");
-
         lines.Clear();
 
         foreach (DialogueLine dialogueLine in dialogue.dialogueLines)
-        {
             lines.Enqueue(dialogueLine);
-        }
+
+        dialogueCanvas.gameObject.SetActive(true);
+        Debug.Log("Canvas attivata: " + dialogueCanvas.name);
 
         DisplayNextDialogueLine();
     }
@@ -55,18 +80,19 @@ public class DialogueManager : MonoBehaviour
         DialogueLine currentLine = lines.Dequeue();
 
         StopAllCoroutines();
-
         StartCoroutine(TypeSentence(currentLine));
     }
 
     IEnumerator TypeSentence(DialogueLine dialogueLine)
     {
-        //dialogueArea.text = "";
+        dialogueArea.text = "";
+
         foreach (char letter in dialogueLine.line.ToCharArray())
         {
-            //dialogueArea.text += letter;
+            dialogueArea.text += letter;
+
             audioCD--;
-            if (letter == (char)32) audioCD += 1;
+            if (letter == ' ') audioCD += 1;
             if (audioCD <= 0)
             {
                 dialogueSounds.pitch = Random.Range(0.90f, 1.1f);
@@ -75,25 +101,34 @@ public class DialogueManager : MonoBehaviour
                 audioCD = 1;
                 StartCoroutine(FadeOut());
             }
+
             yield return new WaitForSeconds(typingSpeed);
         }
+
         audioCD = 0;
     }
 
     void EndDialogue()
     {
+        inputActions.FindActionMap("Player").Enable();
+
         isDialogueActive = false;
-        //animator.Play("hide");
+
+        if (dialogueCanvas != null)
+        {
+            dialogueCanvas.gameObject.SetActive(false);
+            Debug.Log("Canvas disattivata: " + dialogueCanvas.name);
+        }
     }
 
     IEnumerator FadeOut()
     {
         yield return new WaitForSeconds(typingSpeed / 3);
-        float timer = typingSpeed/2;
+        float timer = typingSpeed / 2;
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            dialogueSounds.volume -= Time.deltaTime / (typingSpeed/2);
+            dialogueSounds.volume -= Time.deltaTime / (typingSpeed / 2);
             yield return null;
         }
     }
