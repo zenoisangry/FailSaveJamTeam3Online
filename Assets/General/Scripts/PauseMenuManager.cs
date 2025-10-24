@@ -9,6 +9,8 @@ public class PauseMenuManager : MonoBehaviour
     public GameObject pauseDisplay;
     public GameObject settingsDisplay;
     public Slider sensitivitySlider;
+    public Slider musicSlider;
+    public Slider SFXSlider;
     public Slider volumeSlider;
     public Button returnButton;
 
@@ -123,10 +125,16 @@ public class PauseMenuManager : MonoBehaviour
         }
     }
 
-    public void SetMusicVolume()
+    public void SetVolume()
     {
+        float music = musicSlider.value;
+        masterMixer.SetFloat("BackgroundMusic", Mathf.Log10(music) * 20);
+
         float volume = volumeSlider.value;
-        masterMixer.SetFloat("BackgroundMusic", Mathf.Log10(volume) * 20);
+        masterMixer.SetFloat("VolumeMusic", Mathf.Log10(volume) * 20);
+
+        float sfx = SFXSlider.value;
+        masterMixer.SetFloat("SoundEffects", Mathf.Log10(sfx) * 20);
     }
 
     // ---------------------------------------------------------
@@ -138,8 +146,14 @@ public class PauseMenuManager : MonoBehaviour
         if (sensitivitySlider != null)
             PlayerPrefs.SetFloat("Sensitivity", sensitivitySlider.value);
 
+        if (musicSlider != null)
+            PlayerPrefs.SetFloat("BackgroundMusic", musicSlider.value);
+
         if (volumeSlider != null)
-            PlayerPrefs.SetFloat("BackgroundMusic", volumeSlider.value);
+            PlayerPrefs.SetFloat("VolumeMusic", musicSlider.value);
+
+        if (SFXSlider != null)
+            PlayerPrefs.SetFloat("SoundEffects", musicSlider.value);
 
         PlayerPrefs.Save();
     }
@@ -147,7 +161,9 @@ public class PauseMenuManager : MonoBehaviour
     private void LoadSettings()
     {
         float sensitivity = PlayerPrefs.GetFloat("Sensitivity", 1.0f);
-        float volume = PlayerPrefs.GetFloat("BackgroundMusic", 1.0f);
+        float music = PlayerPrefs.GetFloat("BackgroundMusic", 1.0f);
+        float volume = PlayerPrefs.GetFloat("VolumeMusic", 1.0f);
+        float sfx = PlayerPrefs.GetFloat("SoundEffects", 1.0f);
 
         if (playerMovement != null)
         {
@@ -157,15 +173,27 @@ public class PauseMenuManager : MonoBehaviour
 
         if (masterMixer != null)
         {
-            float dB = Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1f)) * 20f;
+            float dB = Mathf.Log10(Mathf.Clamp(music, 0.001f, 1f)) * 20f;
             masterMixer.SetFloat("BackgroundMusic", dB);
+
+            float VdB = Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1f)) * 20f;
+            masterMixer.SetFloat("VolumeMusic", VdB);
+
+            float SdB = Mathf.Log10(Mathf.Clamp(sfx, 0.001f, 1f)) * 20f;
+            masterMixer.SetFloat("SoundEffects", SdB);
         }
 
         if (sensitivitySlider != null)
             sensitivitySlider.value = sensitivity;
 
+        if (musicSlider != null)
+            musicSlider.value = music;
+
         if (volumeSlider != null)
             volumeSlider.value = volume;
+
+        if (SFXSlider != null)
+            SFXSlider.value = sfx;
     }
 
     public void QuitGame()
