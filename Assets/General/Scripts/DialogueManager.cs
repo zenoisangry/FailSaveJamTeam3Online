@@ -18,11 +18,13 @@ public class DialogueManager : MonoBehaviour
 
     public Animator animator;
 
+    public AudioSource dialogueSounds;
+    private float audioCD = 1;
+
     private void Awake()
     {
         if (Instance == null)
             Instance = this;
-
         lines = new Queue<DialogueLine>();
     }
 
@@ -30,7 +32,7 @@ public class DialogueManager : MonoBehaviour
     {
         isDialogueActive = true;
 
-        animator.Play("show");
+        //animator.Play("show");
 
         lines.Clear();
 
@@ -59,17 +61,40 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator TypeSentence(DialogueLine dialogueLine)
     {
-        dialogueArea.text = "";
+        //dialogueArea.text = "";
         foreach (char letter in dialogueLine.line.ToCharArray())
         {
-            dialogueArea.text += letter;
+            //dialogueArea.text += letter;
+            audioCD--;
+            if (letter == (char)32) audioCD += 1;
+            if (audioCD <= 0)
+            {
+                dialogueSounds.pitch = Random.Range(0.90f, 1.1f);
+                dialogueSounds.volume = 1;
+                dialogueSounds.Play();
+                audioCD = 1;
+                StartCoroutine(FadeOut());
+            }
             yield return new WaitForSeconds(typingSpeed);
         }
+        audioCD = 0;
     }
 
     void EndDialogue()
     {
         isDialogueActive = false;
-        animator.Play("hide");
+        //animator.Play("hide");
+    }
+
+    IEnumerator FadeOut()
+    {
+        yield return new WaitForSeconds(typingSpeed / 3);
+        float timer = typingSpeed/2;
+        while (timer > 0)
+        {
+            timer -= Time.deltaTime;
+            dialogueSounds.volume -= Time.deltaTime / (typingSpeed/2);
+            yield return null;
+        }
     }
 }
