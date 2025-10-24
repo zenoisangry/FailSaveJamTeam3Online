@@ -8,8 +8,9 @@ public class PauseMenuManager : MonoBehaviour
     [Header("UI References")]
     public GameObject pauseDisplay;
     public GameObject settingsDisplay;
-    public Slider sensitivitySlider;
+    public GameObject archiveDisplay;
     public Slider musicSlider;
+    public Slider sensitivitySlider;
     public Slider SFXSlider;
     public Slider volumeSlider;
     public Button returnButton;
@@ -24,20 +25,27 @@ public class PauseMenuManager : MonoBehaviour
     public PlayerMovement playerMovement;
 
     private InputAction pauseActionPlayer;
+    private InputAction archiveActionPlayer;
     private InputAction pauseActionUI;
+    private InputAction archiveUI;
 
     private bool isPauseMenuActive = false;
     private bool isSettingsActive = false;
+    private bool isArchiveActive = false;
 
     private void Awake()
     {
         pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
         pauseActionUI = InputSystem.actions.FindAction("UI/Pause");
 
+        archiveActionPlayer = InputSystem.actions.FindAction("Player/Archive");
+        archiveUI = InputSystem.actions.FindAction("UI/Archive");
+
         LoadSettings();
 
         pauseDisplay.SetActive(false);
         settingsDisplay.SetActive(false);
+        archiveDisplay.SetActive(false);
 
         if (returnButton != null)
             returnButton.onClick.AddListener(ClosePauseMenu);
@@ -52,6 +60,15 @@ public class PauseMenuManager : MonoBehaviour
         else if (pauseActionUI.WasPressedThisFrame() && isPauseMenuActive)
         {
             ClosePauseMenu();
+        }
+
+        if (archiveActionPlayer.WasPressedThisFrame() && !isArchiveActive)
+        {
+            OpenArchiveMenu();
+        }
+        else if (archiveUI.WasPressedThisFrame() && isArchiveActive)
+        {
+            CloseArchiveMenu();
         }
     }
 
@@ -105,6 +122,30 @@ public class PauseMenuManager : MonoBehaviour
     }
 
     // ---------------------------------------------------------
+    // MENU ARCHIVIO
+    // ---------------------------------------------------------
+
+    public void OpenArchiveMenu()
+    {
+        isArchiveActive = true;
+        archiveDisplay.SetActive(true);
+
+        inputActions.FindActionMap("Player").Disable();
+        inputActions.FindActionMap("UI").Enable();
+    }
+
+    public void CloseArchiveMenu()
+    {
+        isArchiveActive = false;
+        archiveDisplay.SetActive(false);
+
+        inputActions.FindActionMap("Player").Enable();
+        inputActions.FindActionMap("UI").Disable();
+
+        Time.timeScale = 1f;
+    }
+
+    // ---------------------------------------------------------
     // IMPOSTAZIONI
     // ---------------------------------------------------------
 
@@ -121,13 +162,13 @@ public class PauseMenuManager : MonoBehaviour
     public void SetVolume()
     {
         float music = musicSlider.value;
-        masterMixer.SetFloat("BackgroundMusic", Mathf.Log10(music) * 20);
+        masterMixer.SetFloat("BackgroundMusic", Mathf.Log10(music)*20);
 
         float volume = volumeSlider.value;
-        masterMixer.SetFloat("VolumeMusic", Mathf.Log10(volume) * 20);
+        masterMixer.SetFloat("VolumeMusic", Mathf.Log10(volume)*20);
 
         float sfx = SFXSlider.value;
-        masterMixer.SetFloat("SoundEffects", Mathf.Log10(sfx) * 20);
+        masterMixer.SetFloat("SoundEffects", Mathf.Log10(sfx)*20);
     }
 
     // ---------------------------------------------------------

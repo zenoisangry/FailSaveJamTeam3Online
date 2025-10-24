@@ -37,6 +37,10 @@ AudioMixerController:
   m_ExposedParameters:
   - guid: ea2d04b0f1e248f4fbb2314024628742
     name: BackgroundMusic
+  - guid: aedbbdaeb604a35479671756b6be7f4c
+    name: VolumeMusic
+  - guid: 80c538d9b8a7ccc4c99ffac2d97eeb0b
+    name: SoundEffects
   m_AudioMixerGroupViews:
   - guids:
     - c3e45e325981463449a69189b3353a5c
