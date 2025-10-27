@@ -52,11 +52,9 @@ public class ObjectiveManager : MonoBehaviour
     public void UpdateObjectiveUI(string text = "")
     {
         if (objectiveText == null) return;
-        if (text == "")
-        {
-            var current = objectives.Find(o => !o.completed);
-            if (current != null) text = current.description;
-        }
+        var current = objectives.Find(o => !o.completed);
+        if (current != null) text = current.description;
+
         objectiveText.text = text;
     }
 }

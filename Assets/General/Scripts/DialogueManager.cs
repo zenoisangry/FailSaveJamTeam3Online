@@ -16,7 +16,6 @@ public class DialogueManager : MonoBehaviour
     [Header("References")]
     public PlayerMovement playerMovement;
     public InputActionAsset inputActions;
-    private InputAction pauseActionPlayer;
 
     [Header("Settings")]
     public float typingSpeed = 0.2f;
@@ -28,8 +27,6 @@ public class DialogueManager : MonoBehaviour
 
     private void Awake()
     {
-        pauseActionPlayer = InputSystem.actions.FindAction("Player/Pause");
-
         if (Instance == null)
             Instance = this;
         else
@@ -50,6 +47,7 @@ public class DialogueManager : MonoBehaviour
     public void StartDialogue(Dialogue dialogue)
     {
         inputActions.FindActionMap("Player").Disable();
+        inputActions.FindActionMap("UI").Enable();
 
         if (dialogueCanvas == null)
         {
@@ -98,7 +96,7 @@ public class DialogueManager : MonoBehaviour
                 dialogueSounds.pitch = Random.Range(0.90f, 1.1f);
                 dialogueSounds.volume = 1;
                 dialogueSounds.Play();
-                audioCD = 1;
+                audioCD = 3;
                 StartCoroutine(FadeOut());
             }
 
@@ -110,6 +108,7 @@ public class DialogueManager : MonoBehaviour
 
     void EndDialogue()
     {
+        inputActions.FindActionMap("UI").Disable();
         inputActions.FindActionMap("Player").Enable();
 
         isDialogueActive = false;
@@ -123,12 +122,12 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator FadeOut()
     {
-        yield return new WaitForSeconds(typingSpeed / 3);
-        float timer = typingSpeed / 2;
+        yield return new WaitForSeconds(typingSpeed*2f);
+        float timer = typingSpeed;
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            dialogueSounds.volume -= Time.deltaTime / (typingSpeed / 2);
+            dialogueSounds.volume -= Time.deltaTime / (typingSpeed);
             yield return null;
         }
     }

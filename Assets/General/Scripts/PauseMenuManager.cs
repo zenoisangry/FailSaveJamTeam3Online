@@ -9,6 +9,9 @@ public class PauseMenuManager : MonoBehaviour
     public GameObject pauseDisplay;
     public GameObject settingsDisplay;
     public GameObject archiveDisplay;
+    public GameObject archiveMenu;
+    public GameObject archiveDocuments;
+    public GameObject archiveMap;
     public Slider musicSlider;
     public Slider sensitivitySlider;
     public Slider SFXSlider;
@@ -46,6 +49,9 @@ public class PauseMenuManager : MonoBehaviour
         pauseDisplay.SetActive(false);
         settingsDisplay.SetActive(false);
         archiveDisplay.SetActive(false);
+        archiveMap.SetActive(false);
+        archiveMenu.SetActive(false);
+        archiveDocuments.SetActive(false);
 
         if (returnButton != null)
             returnButton.onClick.AddListener(ClosePauseMenu);
@@ -137,6 +143,9 @@ public class PauseMenuManager : MonoBehaviour
     public void CloseArchiveMenu()
     {
         isArchiveActive = false;
+        archiveMenu.SetActive(false);
+        archiveDocuments.SetActive(false);
+        archiveMap.SetActive(false);
         archiveDisplay.SetActive(false);
 
         inputActions.FindActionMap("Player").Enable();

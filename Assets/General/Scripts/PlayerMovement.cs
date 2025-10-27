@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("References")]
     public Transform cameraHolder;
+    public AudioSource switchSound;
     private Rigidbody rb;
 
     [Header("Movement Settings")]
@@ -49,6 +50,8 @@ public class PlayerMovement : MonoBehaviour
     private bool isRotatingToSurface = false;
     private float airTime = 0f;
 
+    public AudioSource steps;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -70,6 +73,7 @@ public class PlayerMovement : MonoBehaviour
     private void OnEnable()
     {
         InputActions.FindActionMap("Player").Enable();
+        InputActions.FindAction("Player/Archive").Disable();
     }
 
     private void OnDisable()
@@ -104,6 +108,23 @@ public class PlayerMovement : MonoBehaviour
         {
             airTime = 0f;
         }
+
+        if (steps.isPlaying)
+        {
+            if (moveInput == Vector2.zero || !IsGrounded())
+            {
+                steps.Stop();
+            }
+        }
+        else
+        {
+            if (moveInput != Vector2.zero && IsGrounded())
+            {
+                steps.pitch = Random.Range(0.95f, 1.05f);
+                steps.Play();
+            }
+        }
+
         HandleCameraRotation();
         HandleCameraSway();
     }
@@ -213,7 +234,7 @@ public class PlayerMovement : MonoBehaviour
             isRotatingToSurface = false;
             yield break;
         }
-
+        switchSound.Play();
         Vector3 newGravity = -closestNormal.normalized;
         Quaternion startRot = transform.rotation;
         Quaternion targetRot = Quaternion.FromToRotation(-gravityDirection, closestNormal) * transform.rotation;

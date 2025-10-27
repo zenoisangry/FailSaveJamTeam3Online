@@ -28,9 +28,11 @@ public class DialogueTrigger : MonoBehaviour
 
     private bool isPlayerInRange = false;
 
+    public bool isNPC;
+
     private void Update()
     {
-        if (isPlayerInRange && Input.GetKeyDown(KeyCode.E))
+        if (isPlayerInRange && Input.GetKeyDown(KeyCode.E) && isNPC)
         {
             TriggerDialogue();
         }
@@ -46,7 +48,6 @@ public class DialogueTrigger : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             isPlayerInRange = true;
-            Debug.Log("Premi E per parlare");
         }
     }
 
@@ -55,7 +56,6 @@ public class DialogueTrigger : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             isPlayerInRange = false;
-            Debug.Log("Fuori portata dell'NPC");
         }
     }
 }
